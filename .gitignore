@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.nexus_testbuild/
+tmp_*/
+*.log
+.DS_Store
+.env
+.gemini/
+__pycache__/
+*.pyc

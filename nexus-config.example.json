@@ -1,0 +1,58 @@
+{
+  "selectedProvider": "ollama",
+  "autoDiscovery": true,
+  "brightness": 1.0,
+  "ttsEnabled": false,
+  "tts_engine": "piper",
+  "language": "en_US",
+  "voice": "en_US-ryan-medium",
+  "speed": 1.0,
+  "volume": 1.0,
+  "cliWorkspace": "C:\\\\Projects\\\\my-workspace",
+  "providers": {
+    "ollama": {
+      "baseUrl": "http://localhost:11434",
+      "model": "llama3",
+      "apiKey": "",
+      "enabled": true
+    },
+    "lmstudio": {
+      "baseUrl": "http://localhost:1234",
+      "model": "local-model",
+      "apiKey": "",
+      "enabled": true
+    },
+    "openai": {
+      "baseUrl": "https://api.openai.com",
+      "model": "gpt-4o-mini",
+      "apiKey": "YOUR_OPENAI_KEY",
+      "enabled": false
+    },
+    "anthropic": {
+      "baseUrl": "https://api.anthropic.com",
+      "model": "claude-3-5-sonnet-latest",
+      "apiKey": "YOUR_ANTHROPIC_KEY",
+      "enabled": false
+    },
+    "gemini": {
+      "baseUrl": "https://generativelanguage.googleapis.com",
+      "model": "gemini-1.5-flash",
+      "apiKey": "YOUR_GEMINI_KEY",
+      "enabled": false
+    },
+    "openrouter": {
+      "baseUrl": "https://openrouter.ai",
+      "model": "openai/gpt-4o-mini",
+      "apiKey": "YOUR_OPENROUTER_KEY",
+      "enabled": false
+    }
+  },
+  "telegram": {
+    "enabled": false,
+    "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
+    "allowedChatIds": [
+      "123456789"
+    ],
+    "allowTerminalCommands": false
+  }
+}
