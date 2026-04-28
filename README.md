@@ -103,17 +103,36 @@ In terminal mode, use these slash commands to orchestrate your environment:
 
 ## 🤖 Telegram Remote Access
 
-Control your development environment from anywhere in the world.
+Control your development environment and your PC from anywhere in the world using Telegram.
 
-1. **Setup**: Get a token from [@BotFather](https://t.me/botfather).
-2. **Configure**: 
-   - **GUI**: Settings > Remote Access
-   - **CLI**: `/telegram token <key>` then `/telegram allow <your_id>`
-3. **Safety**: Enable "Allow Terminal" only if you trust your authorized users.
-4. **Run**: 
-   ```cmd
-   npm run telegram:bot
-   ```
+### 1. Initial Setup
+1.  **Create a Bot**: Message [@BotFather](https://t.me/botfather) on Telegram and follow the steps to get your **Bot Token**.
+2.  **Configure Open Nexus**:
+    *   **GUI**: Open the Desktop app, go to **Settings > Remote Access**, and paste your Token.
+    *   **CLI**: Use `/telegram token <your_token>` to save it.
+
+### 2. Authorization (Security)
+By default, the bot is restricted. You must authorize specific users to interact with it:
+- Find your User ID or use your **@username**.
+- **GUI**: Add your username or ID to the "Allowed Chat IDs" list.
+- **CLI**: Use `/telegram allow @YourUsername`.
+- **Note**: You can add multiple users separated by commas.
+
+### 3. Launching the Bot
+The Telegram connection runs as a background service. To start it:
+```cmd
+npm run telegram:bot
+```
+*Keep this terminal window open to keep the bot active.*
+
+### 4. Features & Usage
+Once connected, you can chat with Open Nexus just like the CLI:
+- **PC Control**: Ask it to "Open Chrome to youtube.com" or "Start Notepad."
+- **File Management**: "Read main.py" or "Create a new folder called tests."
+- **Terminal**: Run any system command remotely (if *Allow Terminal* is enabled in settings).
+
+> [!CAUTION]
+> **Remote Power**: Enabling "Allow Terminal" and "Jailbreak" gives the bot full control over your computer. Only authorize users you trust implicitly.
 
 ---
 
