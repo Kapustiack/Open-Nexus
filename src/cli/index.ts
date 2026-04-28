@@ -206,10 +206,24 @@ async function handleSlashCommand(input: string): Promise<boolean> {
         if (subValue === 'on' || subValue === 'true') config.telegram.allowTerminalCommands = true;
         else if (subValue === 'off' || subValue === 'false') config.telegram.allowTerminalCommands = false;
         else { console.log('Usage: /telegram terminal <on|off>'); return true; }
+      } else if (sub === 'start') {
+        if (!config.telegram.botToken) {
+          console.log('Error: Telegram Bot Token is not set. Use /telegram token <key> first.');
+          return true;
+        }
+        console.log('Starting Telegram Bot process...');
+        const botPath = path.join(__dirname, 'telegram-bot.js');
+        const botProc = require('child_process').spawn('node', [botPath], {
+          detached: true,
+          stdio: 'inherit'
+        });
+        botProc.unref();
+        console.log('Telegram Bot is now running in the background.');
+        return true;
       } else if (sub === 'clear') {
         config.telegram = { enabled: false, botToken: '', allowedChatIds: [], allowTerminalCommands: false };
       } else {
-        console.log('Usage: /telegram <toggle|token|allow|terminal|clear>');
+        console.log('Usage: /telegram <toggle|token|allow|terminal|start|clear>');
         return true;
       }
 

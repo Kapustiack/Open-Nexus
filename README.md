@@ -120,9 +120,13 @@ By default, the bot is restricted. You must authorize specific users to interact
 
 ### 3. Launching the Bot
 The Telegram connection runs as a background service. To start it:
-```cmd
-npm run telegram:bot
-```
+
+- **Via CLI**: Use the command `/telegram start` inside the Nexus terminal.
+- **Via Console**: Run the following command in your project folder:
+  ```cmd
+  npm run telegram:bot
+  ```
+*Note: If you use the console command, keep the window open to keep the bot active.*
 *Keep this terminal window open to keep the bot active.*
 
 ### 4. Features & Usage
