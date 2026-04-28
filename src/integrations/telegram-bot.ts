@@ -28,43 +28,66 @@ function getKnownFiles(chatId: string) {
   return knownFilesByChat.get(chatId)!;
 }
 
-function isAllowed(chatId: string) {
-  return config.telegram.allowedChatIds.length === 0 || config.telegram.allowedChatIds.includes(chatId);
-}
-
-async function sendMessage(chatId: string, text: string) {
-  await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
-    chat_id: chatId,
-    text,
+function isAllowed(chatId: string, username?: string) {
+  if (config.telegram.allowedChatIds.length === 0) return true;
+  
+  return config.telegram.allowedChatIds.some(allowed => {
+    const trimmed = allowed.trim();
+    // Check ID match
+    if (trimmed === chatId) return true;
+    // Check Username match (case insensitive, with or without @)
+    if (username && (trimmed.toLowerCase() === `@${username.toLowerCase()}` || trimmed.toLowerCase() === username.toLowerCase())) {
+      return true;
+    }
+    return false;
   });
 }
 
-async function handleMessage(chatId: string, text: string) {
-  if (!isAllowed(chatId)) {
-    await sendMessage(chatId, 'This chat is not allowed to control Open Nexus.');
+async function sendMessage(chatId: string, text: string) {
+  try {
+    await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
+      chat_id: chatId,
+      text,
+    });
+  } catch (error: any) {
+    console.error(`Failed to send message to ${chatId}:`, error.response?.data || error.message);
+  }
+}
+
+async function handleMessage(chatId: string, text: string, username?: string) {
+  if (!isAllowed(chatId, username)) {
+    console.log(`Access denied for ${username || chatId}`);
+    await sendMessage(chatId, 'This chat is not allowed to control Open Nexus. Use your Telegram numeric ID or @username in settings.');
     return;
   }
 
+  console.log(`Processing message from ${username || chatId}: ${text}`);
   const history = getHistory(chatId);
   history.push({ role: 'user', content: text });
-  const workspace = config.cliWorkspace || process.cwd();
-  const response = await chatWithNexus(history, workspace, config);
-  history.push({ role: 'assistant', content: response.content });
-  await sendMessage(chatId, response.content);
+  
+  try {
+    const workspace = config.cliWorkspace || process.cwd();
+    const response = await chatWithNexus(history, workspace, config);
+    history.push({ role: 'assistant', content: response.content });
+    await sendMessage(chatId, response.content);
 
-  if (response.tools.length) {
-    const toolResults = await executeTools(response.tools, {
-      workspaceRoot: workspace,
-      knownFiles: getKnownFiles(chatId),
-      allowTerminal: config.telegram.allowTerminalCommands,
-    });
+    if (response.tools.length) {
+      const toolResults = await executeTools(response.tools, {
+        workspaceRoot: workspace,
+        knownFiles: getKnownFiles(chatId),
+        allowTerminal: config.telegram.allowTerminalCommands,
+      });
 
-    if (toolResults) {
-      history.push({ role: 'user', content: `[SYSTEM: TOOL_RESULTS]\n${toolResults}` });
-      const followUp = await chatWithNexus(history, workspace, config);
-      history.push({ role: 'assistant', content: followUp.content });
-      await sendMessage(chatId, followUp.content);
+      if (toolResults) {
+        history.push({ role: 'user', content: `[SYSTEM: TOOL_RESULTS]\n${toolResults}` });
+        const followUp = await chatWithNexus(history, workspace, config);
+        history.push({ role: 'assistant', content: followUp.content });
+        await sendMessage(chatId, followUp.content);
+      }
     }
+  } catch (error: any) {
+    console.error('Error in handleMessage:', error);
+    await sendMessage(chatId, `Error processing request: ${error.message || 'Unknown error'}`);
   }
 }
 
@@ -80,7 +103,7 @@ async function poll() {
     offset = update.update_id + 1;
     const message = update.message;
     if (!message?.text) continue;
-    await handleMessage(String(message.chat.id), message.text);
+    await handleMessage(String(message.chat.id), message.text, message.from?.username);
   }
 }
 

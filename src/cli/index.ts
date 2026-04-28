@@ -23,7 +23,7 @@ const rl = readline.createInterface({
 });
 
 async function main() {
-  await checkForUpdates(true); // Check silently first, but it will print if update found
+  await checkForUpdates(true);
   await printHeader();
   rl.prompt();
 }
@@ -102,7 +102,7 @@ async function handleSlashCommand(input: string): Promise<boolean> {
         console.log(`   Allowed IDs:  ${config.telegram.allowedChatIds.join(', ') || '(all)'}`);
         console.log(`   Terminal:     ${config.telegram.allowTerminalCommands ? 'ALLOWED' : 'BLOCKED'}`);
       }
-      
+
       printDivider('PROVIDER CONFIGURATIONS');
       for (const [provider, settings] of Object.entries(config.providers)) {
         const isSelected = provider === config.selectedProvider;
@@ -161,7 +161,7 @@ async function handleSlashCommand(input: string): Promise<boolean> {
       saveSharedConfig(config);
       console.log(`Workspace set to ${workspaceRoot}.`);
       return true;
-    
+
     case '/autodiscovery':
       if (value === 'on' || value === 'true') {
         config.autoDiscovery = true;
@@ -191,7 +191,7 @@ async function handleSlashCommand(input: string): Promise<boolean> {
     case '/telegram': {
       const [sub, ...args] = rest;
       const subValue = args.join(' ').trim();
-      
+
       if (sub === 'toggle') {
         if (subValue === 'on' || subValue === 'true') config.telegram.enabled = true;
         else if (subValue === 'off' || subValue === 'false') config.telegram.enabled = false;
@@ -212,7 +212,7 @@ async function handleSlashCommand(input: string): Promise<boolean> {
         console.log('Usage: /telegram <toggle|token|allow|terminal|clear>');
         return true;
       }
-      
+
       saveSharedConfig(config);
       console.log('Telegram configuration updated.');
       return true;
@@ -319,14 +319,14 @@ async function processUserMessage(input: string, depth = 0): Promise<void> {
     if (toolResults) {
       console.log(toolResults);
       await sleep(1000);
-      
+
       const isFailure = /\[COMMAND EXIT [^0]\]|\[TOOL ERROR:/.test(toolResults);
-      const statusInfo = isFailure 
-        ? "FAILURE: The command failed or returned an error. Analyze the logs and provide a fix." 
+      const statusInfo = isFailure
+        ? "FAILURE: The command failed or returned an error. Analyze the logs and provide a fix."
         : "SUCCESS: The command finished. Briefly explain what happened.";
 
       const feedback = `### TERMINAL FEEDBACK REPORT\n**SYSTEM STATUS**: ${statusInfo}\n\n**LOGS**:\n${toolResults}\n\n**TASK**: Explain the outcome. If it failed, fix the error. DO NOT output technical tags like [SYSTEM_STATUS].`;
-      
+
       await processUserMessage(feedback, depth + 1);
     }
   }
