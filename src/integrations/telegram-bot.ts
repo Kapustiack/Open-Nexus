@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+import { execSync, spawn } from 'child_process';
+import * as readline from 'readline';
 import axios from 'axios';
 import { chatWithNexus } from '../shared/nexus-agent';
 import { executeTools } from '../shared/local-tool-executor';
@@ -8,6 +9,53 @@ type HistoryMessage = { role: 'user' | 'assistant' | 'system'; content: string }
 
 const config = loadSharedConfig();
 const token = config.telegram.botToken;
+
+async function cleanupOtherInstances() {
+  try {
+    const currentPid = process.pid;
+    // Find node processes that are running telegram-bot.js but are not the current process
+    const cmd = `powershell "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*telegram-bot.js*' -and $_.ProcessId -ne ${currentPid} } | Select-Object ProcessId, CommandLine | ConvertTo-Json"`;
+    
+    let output = '';
+    try {
+      output = execSync(cmd, { encoding: 'utf8' }).trim();
+    } catch (e) {
+      // If no processes found, powershell might exit with non-zero or empty
+      return;
+    }
+
+    if (!output) return;
+
+    let processes = JSON.parse(output);
+    if (!Array.isArray(processes)) processes = [processes];
+    
+    if (processes.length > 0) {
+      console.log(`\n⚠️  Detected ${processes.length} other instance(s) of Open Nexus Bot running.`);
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      
+      const answer = await new Promise<string>(resolve => {
+        rl.question('Would you like to close them to prevent conflicts? (y/n): ', resolve);
+      });
+      rl.close();
+
+      if (answer.toLowerCase() === 'y') {
+        console.log('Closing other instances...');
+        for (const proc of processes) {
+          try {
+            execSync(`taskkill /F /PID ${proc.ProcessId}`);
+            console.log(`- Terminated PID ${proc.ProcessId}`);
+          } catch (e) {}
+        }
+        // Small delay to let OS release the port/locks
+        await new Promise(r => setTimeout(r, 1000));
+      } else {
+        console.log('Proceeding with potential conflicts. If the bot fails with error 409, close other terminals manually.');
+      }
+    }
+  } catch (error) {
+    // Silent fail for cleanup - non critical
+  }
+}
 
 if (!token) {
   console.error('Telegram bot token is not configured.');
@@ -191,4 +239,9 @@ async function loop() {
   }
 }
 
-loop();
+async function runBot() {
+  await cleanupOtherInstances();
+  loop();
+}
+
+runBot();
