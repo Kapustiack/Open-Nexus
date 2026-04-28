@@ -17,6 +17,7 @@ if (!token) {
 const histories = new Map<string, HistoryMessage[]>();
 const knownFilesByChat = new Map<string, Set<string>>();
 const processedUpdates = new Set<number>();
+const processingChats = new Set<string>();
 let offset = 0;
 
 function stripToolsOnly(content: string): string {
@@ -86,12 +87,15 @@ async function sendMessage(chatId: string, text: string) {
 }
 
 async function handleMessage(chatId: string, text: string, username?: string) {
+  if (processingChats.has(chatId)) return;
+  
   if (!isAllowed(chatId, username)) {
     console.log(`Access denied for ${username || chatId}`);
     await sendMessage(chatId, 'This chat is not allowed to control Open Nexus. Use your Telegram numeric ID or @username in settings.');
     return;
   }
 
+  processingChats.add(chatId);
   console.log(`Processing message from ${username || chatId}: ${text}`);
   const history = getHistory(chatId);
   
@@ -127,12 +131,14 @@ async function handleMessage(chatId: string, text: string, username?: string) {
         history.push({ role: 'user', content: `[SYSTEM: TOOL_RESULTS]\n${toolResults}` });
         const followUp = await chatWithNexus(history, workspace, config);
         history.push({ role: 'assistant', content: followUp.content });
-        await sendMessage(chatId, followUp.content);
+        await sendMessage(chatId, stripToolsOnly(followUp.rawContent) || followUp.content);
       }
     }
   } catch (error: any) {
     console.error('Error in handleMessage:', error);
     await sendMessage(chatId, `Error processing request: ${error.message || 'Unknown error'}`);
+  } finally {
+    processingChats.delete(chatId);
   }
 }
 
