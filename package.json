@@ -8,10 +8,10 @@
   },
   "scripts": {
     "build": "webpack",
-    "start": "webpack && electron .",
-    "start:ui": "webpack && electron .",
-    "cli": "webpack && node dist/cli.js",
-    "telegram:bot": "webpack && node dist/telegram-bot.js"
+    "start": "npm run build && electron .",
+    "start:ui": "npm run build && electron .",
+    "cli": "npm run build && node dist/cli.js",
+    "telegram:bot": "npm run build && node dist/telegram-bot.js"
   },
   "keywords": [],
   "author": "",

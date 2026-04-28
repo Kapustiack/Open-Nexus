@@ -10,6 +10,7 @@ import './ai-agent';
 import './piper';
 
 app.whenReady().then(async () => {
+  /* 
   try {
     const updated = await checkForUpdates(true);
     if (updated) {
@@ -22,6 +23,7 @@ app.whenReady().then(async () => {
   } catch (e) {
     console.error('Update check failed:', e);
   }
+  */
 
   const window = createWindow();
 

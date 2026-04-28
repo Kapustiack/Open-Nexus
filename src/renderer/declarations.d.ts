@@ -1,4 +1,6 @@
 declare module "*.css";
+declare module 'lucide-react';
+declare module 'framer-motion';
 
 interface Window {
   electron: {

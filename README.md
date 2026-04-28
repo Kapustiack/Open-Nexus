@@ -40,38 +40,47 @@ Open Nexus is more than just a chat app. It is a shared AI core that integrates 
 
 ---
 
-## 🛠️ Quick Start (Windows)
+## 🛠️ Installation & Setup
 
-The fastest way to get started is using the automated setup script.
+> [!NOTE]
+> **OS Support**: Open Nexus currently only supports **Windows**. Support for **macOS** and **Linux** is planned for future releases.
 
+Get Open Nexus running on your machine in just a few steps.
+
+### 1. Clone the repository
+```cmd
+git clone https://github.com/Kapustiack/Open-Nexus.git
+cd Open-Nexus
+```
+
+### 2. Install & Build
+You have two options to set up the environment:
+
+**Option A: Automated (Recommended)**
+Simply run the setup script and it will handle everything for you:
 ```cmd
 setup.bat
 ```
 
-### Manual Installation
+**Option B: Manual**
+If you prefer to run commands manually:
+```cmd
+npm install
+npm run build
+```
 
-1. **Clone the repository**
-   ```cmd
-   git clone https://github.com/Kapustiack/Open-Nexus.git
-   cd Open-Nexus
-   ```
+### 3. Launch
+Once the installation is complete, you can start the application:
 
-2. **Install & Build**
-   ```cmd
-   npm install
-   npm run build
-   ```
+- **Desktop App**: `npm start`
+- **Terminal Mode**: `npm run cli`
 
-3. **Launch**
-   - **Desktop App**: `npm start`
-   - **Terminal Mode**: `npm run cli`
-
-4. **Global CLI Access**
-   To use the `nexus` command anywhere on your system:
-   ```cmd
-   npm install -g .
-   nexus
-   ```
+### 4. Global CLI Access (Optional)
+To use the `nexus` command anywhere on your system:
+```cmd
+npm install -g .
+nexus
+```
 
 ---
 
