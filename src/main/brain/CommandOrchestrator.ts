@@ -24,6 +24,7 @@ export class BrainOrchestrator {
       .replace(/\[\[CODE_BLOCK\]\][\s\S]*?\[\[END_CODE_BLOCK\]\]/g, '')
       .replace(/\[\[\/?CODE_BLOCK\]\]/g, '')
       .replace(/\[\[END_CODE_BLOCK\]\]/g, '')
+      .replace(/```[\s\S]*?```/g, '')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
   }

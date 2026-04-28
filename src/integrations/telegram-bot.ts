@@ -19,6 +19,21 @@ const knownFilesByChat = new Map<string, Set<string>>();
 const processedUpdates = new Set<number>();
 let offset = 0;
 
+function stripToolsOnly(content: string): string {
+  return content
+    .replace(/<run>[\s\S]*?<\/run>/g, '')
+    .replace(/<write_file[\s\S]*?<\/write_file>/g, '')
+    .replace(/<edit_file[\s\S]*?<\/edit_file>/g, '')
+    .replace(/<diff[\s\S]*?<\/diff>/g, '')
+    .replace(/<patch[\s\S]*?<\/patch>/g, '')
+    .replace(/<read_file[\s\S]*?<\/read_file>/g, '')
+    .replace(/<create_directory[\s\S]*?\/>/g, '')
+    .replace(/<delete_path[\s\S]*?\/>/g, '')
+    .replace(/<list_files[\s\S]*?\/>/g, '')
+    .replace(/\[(\/?(?:run|write_file|edit_file|diff|patch|read_file|create_directory|delete_path|list_files)\b)[^\]]*\]/g, '')
+    .trim();
+}
+
 function getHistory(chatId: string) {
   if (!histories.has(chatId)) histories.set(chatId, []);
   return histories.get(chatId)!;
@@ -94,12 +109,10 @@ async function handleMessage(chatId: string, text: string, username?: string) {
     const response = await chatWithNexus(history, workspace, config);
     history.push({ role: 'assistant', content: response.content });
     
-    // Use rawContent if content is empty or generic to ensure code is shown
-    const finalContent = (response.content === 'Action prepared.' || !response.content.trim()) 
-      ? response.rawContent 
-      : response.content;
+    // Telegram gets the code blocks, but the app stays clean
+    const telegramContent = stripToolsOnly(response.rawContent) || response.content;
 
-    await sendMessage(chatId, finalContent);
+    await sendMessage(chatId, telegramContent);
 
     if (response.tools.length) {
       const toolResults = await executeTools(response.tools, {
