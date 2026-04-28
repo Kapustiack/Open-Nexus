@@ -23,7 +23,7 @@ const rl = readline.createInterface({
 });
 
 async function main() {
-  // await checkForUpdates(true); // Check silently first, but it will print if update found
+  await checkForUpdates(true); // Check silently first, but it will print if update found
   await printHeader();
   rl.prompt();
 }
