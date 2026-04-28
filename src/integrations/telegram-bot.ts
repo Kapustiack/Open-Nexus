@@ -97,12 +97,16 @@ async function handleMessage(chatId: string, text: string, username?: string) {
 
   processingChats.add(chatId);
   console.log(`Processing message from ${username || chatId}: ${text}`);
+  
+  // Send an initial "thinking" notification
+  await sendMessage(chatId, '_Nexus is thinking..._ 🧠');
+
   const history = getHistory(chatId);
   
   if (history.length === 0) {
     history.push({ 
       role: 'system', 
-      content: 'You are Open Nexus. When asked for code, provide it directly in standard Markdown code blocks. Do not hide code in tools unless you are also writing it to a file. Ensure you respond in a way that is readable in a chat interface.' 
+      content: 'You are Open Nexus. Provide code in standard Markdown blocks. If a request is blocked by safety filters, explain that briefly. Keep responses optimized for a mobile chat interface.' 
     });
   }
 
@@ -113,9 +117,7 @@ async function handleMessage(chatId: string, text: string, username?: string) {
     const response = await chatWithNexus(history, workspace, config);
     history.push({ role: 'assistant', content: response.content });
     
-    // Telegram gets the code blocks, but the app stays clean
     const telegramContent = stripToolsOnly(response.rawContent) || response.content;
-
     await sendMessage(chatId, telegramContent);
 
     if (response.tools.length) {
@@ -123,7 +125,7 @@ async function handleMessage(chatId: string, text: string, username?: string) {
         workspaceRoot: workspace,
         knownFiles: getKnownFiles(chatId),
         allowTerminal: config.telegram.allowTerminalCommands,
-        jailbreak: config.jailbreak, // Pass jailbreak mode
+        jailbreak: config.jailbreak,
         recentMessages: history.map(m => m.content)
       });
 
@@ -143,27 +145,37 @@ async function handleMessage(chatId: string, text: string, username?: string) {
 }
 
 async function poll() {
-  const response = await axios.get(`https://api.telegram.org/bot${token}/getUpdates`, {
-    params: {
-      timeout: 25,
-      offset,
-    },
-  });
+  try {
+    const response = await axios.get(`https://api.telegram.org/bot${token}/getUpdates`, {
+      params: {
+        timeout: 25,
+        offset,
+      },
+    });
 
-  for (const update of response.data.result || []) {
-    if (processedUpdates.has(update.update_id)) continue;
-    processedUpdates.add(update.update_id);
-    
-    // Keep the set small
-    if (processedUpdates.size > 100) {
-      const first = processedUpdates.values().next().value;
-      if (first !== undefined) processedUpdates.delete(first);
+    for (const update of response.data.result || []) {
+      if (processedUpdates.has(update.update_id)) continue;
+      processedUpdates.add(update.update_id);
+      
+      if (processedUpdates.size > 100) {
+        const first = processedUpdates.values().next().value;
+        if (first !== undefined) processedUpdates.delete(first);
+      }
+
+      offset = update.update_id + 1;
+      const message = update.message;
+      if (!message?.text) continue;
+      await handleMessage(String(message.chat.id), message.text, message.from?.username);
     }
-
-    offset = update.update_id + 1;
-    const message = update.message;
-    if (!message?.text) continue;
-    await handleMessage(String(message.chat.id), message.text, message.from?.username);
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      console.error('\n[CONFLICT ERROR] Another instance of this bot is already running.');
+      console.error('Please close all other terminal windows running Open Nexus and try again.\n');
+      await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait longer on conflict
+    } else {
+      console.error(`Telegram poll error: ${error.message || error}`);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
   }
 }
 
