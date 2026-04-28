@@ -41,7 +41,6 @@ function buildAutoFileContext(messages: ChatMessage[], workspaceRoot: string): C
 export async function chatWithNexus(messages: ChatMessage[], workspaceRoot: string, config?: AppConfig): Promise<NexusResponse> {
   const activeConfig = config || loadSharedConfig();
   const provider = await resolveActiveProvider(activeConfig);
-  const autoFileContext = buildAutoFileContext(messages, workspaceRoot);
 
   const dynamicIntelligence = `
 ${SYSTEM_INTELLIGENCE}

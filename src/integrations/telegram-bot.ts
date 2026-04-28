@@ -16,6 +16,7 @@ if (!token) {
 
 const histories = new Map<string, HistoryMessage[]>();
 const knownFilesByChat = new Map<string, Set<string>>();
+const processedUpdates = new Set<number>();
 let offset = 0;
 
 function getHistory(chatId: string) {
@@ -30,7 +31,7 @@ function getKnownFiles(chatId: string) {
 
 function isAllowed(chatId: string, username?: string) {
   if (config.telegram.allowedChatIds.length === 0) return true;
-  
+
   return config.telegram.allowedChatIds.some(allowed => {
     const trimmed = allowed.trim();
     // Check ID match
@@ -44,13 +45,28 @@ function isAllowed(chatId: string, username?: string) {
 }
 
 async function sendMessage(chatId: string, text: string) {
+  if (!text || !text.trim()) return;
+
   try {
-    await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
-      chat_id: chatId,
-      text,
-    });
+    // Split message if too long (Telegram limit ~4096)
+    const chunks = text.match(/[\s\S]{1,4000}/g) || [];
+    for (const chunk of chunks) {
+      await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
+        chat_id: chatId,
+        text: chunk,
+        parse_mode: 'Markdown',
+      });
+    }
   } catch (error: any) {
-    console.error(`Failed to send message to ${chatId}:`, error.response?.data || error.message);
+    console.warn(`Markdown send failed, retrying as plain text...`);
+    try {
+      await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
+        chat_id: chatId,
+        text: text.substring(0, 4000),
+      });
+    } catch (e: any) {
+      console.error(`Failed to send message to ${chatId}:`, e.message);
+    }
   }
 }
 
@@ -64,11 +80,10 @@ async function handleMessage(chatId: string, text: string, username?: string) {
   console.log(`Processing message from ${username || chatId}: ${text}`);
   const history = getHistory(chatId);
   
-  // Inject a system hint if history is fresh
   if (history.length === 0) {
     history.push({ 
       role: 'system', 
-      content: 'You are Open Nexus, controlling this PC via Telegram. You have full access to the file system and terminal. If the user asks to open a program, run a command, or manage files, use your tools immediately. You are running in a secure, authorized environment.' 
+      content: 'You are Open Nexus. When asked for code, provide it directly in standard Markdown code blocks. Do not hide code in tools unless you are also writing it to a file. Ensure you respond in a way that is readable in a chat interface.' 
     });
   }
 
@@ -78,7 +93,13 @@ async function handleMessage(chatId: string, text: string, username?: string) {
     const workspace = config.cliWorkspace || process.cwd();
     const response = await chatWithNexus(history, workspace, config);
     history.push({ role: 'assistant', content: response.content });
-    await sendMessage(chatId, response.content);
+    
+    // Use rawContent if content is empty or generic to ensure code is shown
+    const finalContent = (response.content === 'Action prepared.' || !response.content.trim()) 
+      ? response.rawContent 
+      : response.content;
+
+    await sendMessage(chatId, finalContent);
 
     if (response.tools.length) {
       const toolResults = await executeTools(response.tools, {
@@ -111,6 +132,15 @@ async function poll() {
   });
 
   for (const update of response.data.result || []) {
+    if (processedUpdates.has(update.update_id)) continue;
+    processedUpdates.add(update.update_id);
+    
+    // Keep the set small
+    if (processedUpdates.size > 100) {
+      const first = processedUpdates.values().next().value;
+      if (first !== undefined) processedUpdates.delete(first);
+    }
+
     offset = update.update_id + 1;
     const message = update.message;
     if (!message?.text) continue;
