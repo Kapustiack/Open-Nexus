@@ -179,20 +179,42 @@ async function runTerminalCommand(command: string, workspaceRoot: string): Promi
     .replace(/<run>([\s\S]*?)<\/run>/i, '$1')
     .trim();
 
+  // If on Windows and command looks like opening a program, use Start-Process to avoid hanging
+  let finalCommand = cleanedCommand;
+  if (process.platform === 'win32') {
+    const isOpeningProgram = /^(notepad|calc|chrome|explorer|msedge|start|open)\b/i.test(cleanedCommand);
+    if (isOpeningProgram && !cleanedCommand.toLowerCase().startsWith('start-process')) {
+      finalCommand = `Start-Process ${cleanedCommand}`;
+    }
+  }
+
   return new Promise((resolve) => {
-    const proc = spawn(cleanedCommand, {
+    const proc = spawn(finalCommand, {
       cwd: workspaceRoot,
       shell: process.platform === 'win32' ? 'powershell.exe' : true,
       stdio: ['ignore', 'pipe', 'pipe'],
+      detached: true, // Allow processes to live beyond the tool call
     });
 
     let stdout = '';
     let stderr = '';
 
+    const timeout = setTimeout(() => {
+      proc.unref(); // Release handle
+      resolve(`[COMMAND STARTED IN BACKGROUND]\n${cleanedCommand}`);
+    }, 5000); // If it takes more than 5s, assume it's a long-running app
+
     proc.stdout.on('data', (data) => { stdout += data.toString(); });
     proc.stderr.on('data', (data) => { stderr += data.toString(); });
+    
     proc.on('close', (code) => {
+      clearTimeout(timeout);
       resolve(`[COMMAND EXIT ${code}]\n${stdout}${stderr}`.trim());
+    });
+    
+    proc.on('error', (err) => {
+      clearTimeout(timeout);
+      resolve(`[COMMAND ERROR] ${err.message}`);
     });
   });
 }

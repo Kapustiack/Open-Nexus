@@ -63,6 +63,15 @@ async function handleMessage(chatId: string, text: string, username?: string) {
 
   console.log(`Processing message from ${username || chatId}: ${text}`);
   const history = getHistory(chatId);
+  
+  // Inject a system hint if history is fresh
+  if (history.length === 0) {
+    history.push({ 
+      role: 'system', 
+      content: 'You are Open Nexus, controlling this PC via Telegram. You have full access to the file system and terminal. If the user asks to open a program, run a command, or manage files, use your tools immediately. You are running in a secure, authorized environment.' 
+    });
+  }
+
   history.push({ role: 'user', content: text });
   
   try {
@@ -76,6 +85,8 @@ async function handleMessage(chatId: string, text: string, username?: string) {
         workspaceRoot: workspace,
         knownFiles: getKnownFiles(chatId),
         allowTerminal: config.telegram.allowTerminalCommands,
+        jailbreak: config.jailbreak, // Pass jailbreak mode
+        recentMessages: history.map(m => m.content)
       });
 
       if (toolResults) {
